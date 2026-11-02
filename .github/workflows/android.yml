@@ -31,16 +31,20 @@ jobs:
           sed -i "s/classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')/classpath('org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.25')/" android/build.gradle
           grep -n "kotlin-gradle-plugin" android/build.gradle
           printf '%s\n' "android.kotlinVersion=1.9.25" "kotlinVersion=1.9.25" >> android/gradle.properties
-      - name: Build debug APK
-        run: cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon
+      # Debug APK deliberately skips JS bundling (it expects a Metro server),
+      # so it shows "Unable to load script" on a phone. Build release instead:
+      # release embeds index.android.bundle and signs with the debug keystore
+      # configured by expo prebuild, so it runs standalone.
+      - name: Build release APK
+        run: cd android && chmod +x gradlew && ./gradlew assembleRelease --no-daemon
       - uses: actions/upload-artifact@v4
         with:
-          name: app-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: app-release
+          path: android/app/build/outputs/apk/release/app-release.apk
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1-debug-${{ github.run_number }}
-          name: 合集版 v0.1 debug ${{ github.run_number }}
-          files: android/app/build/outputs/apk/debug/app-debug.apk
+          tag_name: v0.1-release-${{ github.run_number }}
+          name: 合集版 v0.1 release ${{ github.run_number }}
+          files: android/app/build/outputs/apk/release/app-release.apk
           fail_on_unmatched_files: true
