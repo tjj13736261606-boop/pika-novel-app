@@ -26,6 +26,11 @@ jobs:
           "$SDKMGR" "platforms;android-35" "build-tools;35.0.0" "platform-tools" || true
       - run: npm install
       - run: npx expo prebuild --platform android --non-interactive
+      - name: Force Kotlin 1.9.25 to match Compose Compiler 1.5.15
+        run: |
+          sed -i "s/classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')/classpath('org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.25')/" android/build.gradle
+          grep -n "kotlin-gradle-plugin" android/build.gradle
+          printf '%s\n' "android.kotlinVersion=1.9.25" "kotlinVersion=1.9.25" >> android/gradle.properties
       - name: Build debug APK
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
