@@ -45,3 +45,45 @@ jobs:
           name: 合集版 v0.1 release ${{ github.run_number }}
           files: android/app/build/outputs/apk/release/app-release.apk
           fail_on_unmatched_files: true
+  # Self-verification gate: do NOT hand the APK to the user until it has
+  # actually launched on an emulator in this same run. This job installs the
+  # freshly built release APK, launches it, waits, then dumps logcat and a
+  # screenshot as artifacts. If the app crashes on launch, this job fails
+  # with the crash lines visible in the log.
+  verify:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: app-release
+          path: apk
+      - name: Launch on emulator and capture logcat
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            adb install -r apk/app-release.apk
+            adb shell am start -n com.muse.pikanovel/.MainActivity
+            sleep 20
+            adb shell pidof com.muse.pikanovel || echo "APP_NOT_RUNNING"
+            adb shell screencap -p /sdcard/launch.png
+            adb pull /sdcard/launch.png launch.png || true
+            adb logcat -d > launch-logcat.txt || true
+            echo "=== FATAL / AndroidRuntime lines ==="
+            grep -E "FATAL|AndroidRuntime|com.muse.pikanovel" launch-logcat.txt | head -n 100 || true
+            echo "=== last 60 logcat lines ==="
+            tail -n 60 launch-logcat.txt || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: launch-verification
+          path: |
+            launch.png
+            launch-logcat.txt
