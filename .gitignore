@@ -1,0 +1,18 @@
+# Dependencies — must not be pushed (work machine copy is ~375 MB)
+node_modules/
+
+# Expo / Metro
+.expo/
+dist/
+web-build/
+
+# Android build outputs (workflow rebuilds them; android/.gitignore also covers build/)
+android/app/build/
+android/build/
+*.apk
+*.aab
+
+# Local env / machine-specific
+local.properties
+.env
+.env.local
