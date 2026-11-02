@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -23,14 +23,11 @@ jobs:
           ls "$ANDROID_SDK_ROOT" || ls "$ANDROID_HOME" || true
           SDKMGR=$(command -v sdkmanager || echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager")
           yes | "$SDKMGR" --licenses || true
-          "$SDKMGR" "platforms;android-35" "build-tools;35.0.0" "platform-tools" || true
+          "$SDKMGR" "platforms;android-35" "platforms;android-36" "build-tools;35.0.0" "build-tools;36.0.0" "platform-tools" || true
       - run: npm install
-      - run: npx expo prebuild --platform android --non-interactive
-      - name: Force Kotlin 1.9.25 to match Compose Compiler 1.5.15
-        run: |
-          sed -i "s/classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')/classpath('org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.25')/" android/build.gradle
-          grep -n "kotlin-gradle-plugin" android/build.gradle
-          printf '%s\n' "android.kotlinVersion=1.9.25" "kotlinVersion=1.9.25" >> android/gradle.properties
+      # SDK 54 / RN 0.81 defaults to Kotlin 2.1.20; do NOT force Kotlin 1.9.25
+      # (that was only for the old SDK 52 / Compose 1.5.15 mismatch).
+      - run: CI=1 npx expo prebuild --platform android
       # Debug APK deliberately skips JS bundling (it expects a Metro server),
       # so it shows "Unable to load script" on a phone. Build release instead:
       # release embeds index.android.bundle and signs with the debug keystore
